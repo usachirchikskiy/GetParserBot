@@ -1,6 +1,8 @@
+import logging
+
 from sqlalchemy import select, insert, delete, update
 
-from src.database import async_session_maker
+from src.database.database import async_session_maker
 
 
 class BaseDao:
@@ -29,7 +31,7 @@ class BaseDao:
                 await session.commit()
                 return result.scalar_one()
         except Exception as e:
-            print("ERROR ", e)
+            logging.error(f'ERROR {e}')
             return None
 
     @classmethod
@@ -41,7 +43,7 @@ class BaseDao:
                 await session.commit()
                 return result.scalar_one()
         except Exception as e:
-            print(e)
+            logging.error(f'ERROR {e}')
             return None
 
     @classmethod
@@ -50,3 +52,17 @@ class BaseDao:
             query = delete(cls.model).filter_by(**filter_by)
             await session.execute(query)
             await session.commit()
+
+    @classmethod
+    async def delete_by_ids(cls, ids_to_delete):
+        async with async_session_maker() as session:
+            query = delete(cls.model).where(cls.model.id.in_(ids_to_delete))
+            await session.execute(query)
+            await session.commit()
+
+    # Usman`s addings
+    @classmethod
+    async def add_if_not_exists(cls, **data):
+        exist = await cls.find_one_or_none(**data)
+        if not exist:
+            await cls.add(**data)

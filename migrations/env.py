@@ -7,13 +7,13 @@ from alembic import context
 import os
 import sys
 
-from src.database import metadata,Base
+from src.database.database import metadata, Base
 
 sys.path.append(os.path.join(sys.path[0], 'src'))
 
 from src.config import DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASS
 
-from src.model import User
+from src.database.model import User
 
 config = context.config
 

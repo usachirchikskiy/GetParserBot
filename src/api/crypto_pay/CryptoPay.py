@@ -1,6 +1,7 @@
 from aiocryptopay import AioCryptoPay, Networks
 
 
+
 class CryptoPay:
     __crypto = None
     _instance = None
@@ -10,6 +11,7 @@ class CryptoPay:
             raise Exception("CryptoPay class can only have one instance.")
         CryptoPay._instance = self
         CryptoPay.__crypto = AioCryptoPay(token='7157:AAaWZEjCVrlcYIcBZu3rv43HJ55Ca85YOOE', network=Networks.TEST_NET)
+        # TODO Change Test Net
 
     @staticmethod
     def get_instance():
