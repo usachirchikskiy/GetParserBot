@@ -1,3 +1,6 @@
 .idea/
+migrations/versions/*
+!migrations/versions/init.txt
 venv/
 .env
+test.py
