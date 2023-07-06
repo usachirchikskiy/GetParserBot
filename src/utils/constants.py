@@ -102,4 +102,4 @@ wallapop = '''
 tech_support_link = "https://t.me/Jikolav"
 percentage_string = "5 %"
 percentage_number = 0.05
-admin_id = 1574853044
+admin_id = [1574853044,5497962695]
