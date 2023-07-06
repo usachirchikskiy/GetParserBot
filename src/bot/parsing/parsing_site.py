@@ -1,6 +1,7 @@
 import json
 
 from telethon import Button, events
+from telethon.tl.types import UpdateBotCallbackQuery, UpdateNewMessage
 
 from src.bot.parsing.parsing_presets import presets
 from src.bot.parsing.sites.runner import run_parsing
@@ -9,8 +10,8 @@ from src.database.dao.FilterDao import FilterDao
 from src.database.dao.SubscriptionDao import SubscriptionDao
 from src.database.dao.UserDao import UserDao
 from src.main import client_bot
-from src.utils.constants import depop_url, media
-from src.utils.utils import flag, moscow_time, get_currency
+from src.utils.constants import media
+from src.utils.utils import flag, moscow_time
 
 
 def parsing_site_callback_filter(event):
@@ -21,13 +22,16 @@ def parsing_site_callback_filter(event):
 
 
 async def handle_site(subscription_title, event, edit=None):
-    message = ""
-    user_id = event.original_update.user_id
+    if isinstance(event.original_update, UpdateBotCallbackQuery):
+        user_id = event.original_update.user_id
+    elif isinstance(event.original_update, UpdateNewMessage):
+        user_id = event.original_update.message.peer_id.user_id
+
     subscription_id = (await SubscriptionDao.find_one_or_none(name=subscription_title)).id
     is_favourite = (
         await UserSubscriptionDao.find_one_or_none(user_id=event.chat_id, subscription_id=subscription_id)
     ).is_favourite
-    favourite = "Удалить из избранного" if is_favourite else "Добавить в избранное"
+    favourite = "⭐ Удалить из избранного" if is_favourite else "⭐ Добавить в избранное"
     buttons = [
         [Button.inline("🔍 Запустить парсинг", data=json.dumps({"action": f"first_filter {subscription_title}"}))],
         [Button.inline("💾 Пресеты", data=json.dumps({"action": f"presets {subscription_title}"}))],
@@ -35,16 +39,12 @@ async def handle_site(subscription_title, event, edit=None):
         [Button.inline("Назад", data=json.dumps({"action": "begin_parsing"}))],
     ]
 
-    if "DEPOP" in subscription_title:
-        title = flag(subscription_title.split(".")[1]) + " " + subscription_title
-        subscription_id = (await SubscriptionDao.find_one_or_none(name=subscription_title)).id
-        expired_at = (
-            await UserSubscriptionDao.find_one_or_none(user_id=user_id, subscription_id=subscription_id)).expired_at
-        time = moscow_time(expired_at)
-        message = f"Площадка: [{title}]({depop_url})\nПодписка закончится (год-месяц-число): {time} по МСК"
-
-    elif "GRAILED":
-        pass
+    title = flag(subscription_title.split(".")[1]) + " " + subscription_title
+    subscription_id = (await SubscriptionDao.find_one_or_none(name=subscription_title)).id
+    expired_at = (
+        await UserSubscriptionDao.find_one_or_none(user_id=user_id, subscription_id=subscription_id)).expired_at
+    time = moscow_time(expired_at)
+    message = f"Площадка: {title}\n\nПодписка закончится (год-месяц-число): {time} по МСК"
 
     if edit:
         await client_bot.edit_message(event.chat_id, event.original_update.msg_id, buttons=buttons)
@@ -72,9 +72,10 @@ async def parsing_site_callback_handler(event):
 
 async def first_filter(chat_id, subscription_id):
     buttons = [[Button.inline("Назад", data=json.dumps({"action": "begin_parsing"}))]]
-    message = "💡 Введите ссылки на категории или ключевые слова через запятую [Max: 10]" \
-              "\n\nПример ссылки: https://www.depop.com/search/?q=vintage,\n" \
-              "https://www.depop.com/search/?q=nike+air+force&priceMin=1&priceMax=123123"
+    message = "💡 Введите ключевые слова через запятую [Max: 10]"
+    # "💡 Введите ссылки на категории или ключевые слова через запятую [Max: 10]" \
+    # "\n\nПример ссылки: https://www.depop.com/search/?q=vintage,\n" \
+    # "https://www.depop.com/search/?q=nike+air+force&priceMin=1&priceMax=123123"
 
     filter_id = (await FilterDao.add(value="Ссылки : ", question_number=1)).id
     user_id = chat_id
@@ -83,7 +84,7 @@ async def first_filter(chat_id, subscription_id):
                                buttons=buttons)
 
 
-async def second_filter(user_id, subscription_id, filter_id):
+async def second_filter(user_id, filter_id):
     message = "💰 Введите диапазон цены товара:\nПример: 100-80000"
     filter_entity = await FilterDao.find_one_or_none(id=filter_id)
     value = filter_entity.value + "Цена : "
@@ -93,27 +94,90 @@ async def second_filter(user_id, subscription_id, filter_id):
 
 
 async def third_filter(user_id, subscription_id, filter_id):
-    message = "🔽 Введите минимальное кол-во проданных товаров продавца"
+    subscription_name = (await SubscriptionDao.find_one_or_none(id=subscription_id)).name
     filter_entity = await FilterDao.find_one_or_none(id=filter_id)
-    value = filter_entity.value + "Кол-во проданных товаров продавца : "
+    if "DEPOP" in subscription_name:
+        message = "🔽 Введите минимальное кол-во проданных товаров продавца"
+        value = filter_entity.value + "Кол-во проданных товаров продавца : "
+
+    elif "GRAILED" in subscription_name or "POSHMARK" in subscription_name or "SCHPOCK" in subscription_name \
+            or "VINTED" in subscription_name or "WALLAPOP" in subscription_name:
+        message = "🔽 Введите минимальное кол-во обьявлений продавца"
+        value = filter_entity.value + "Кол-во обьявлений продавца : "
+
     await FilterDao.update(filter_id, value=value)
     button = [[Button.text("Не использовать фильтр", resize=True, single_use=True)]]
     await client_bot.send_message(user_id, message=message, buttons=button)
 
 
 async def fourth_filter(user_id, subscription_id, filter_id):
-    message = "🗓 Укажите минимальный рейтинг продавца (1-5)\nПример: 4"
+    subscription_name = (await SubscriptionDao.find_one_or_none(id=subscription_id)).name
     filter_entity = await FilterDao.find_one_or_none(id=filter_id)
-    value = filter_entity.value + "Рейтинг продавца : "
+    if "DEPOP" in subscription_name:
+        message = "🗓 Укажите дату создания объявления\nПример: (год-месяц-число) 2015-12-24"
+        value = filter_entity.value + "Дата создания объявления : "
+
+    elif "GRAILED" in subscription_name or "SCHPOCK" in subscription_name \
+            or "VINTED" in subscription_name or "WALLAPOP" in subscription_name:
+        message = "🔽 Введите минимальное кол-во проданных товаров продавца"
+        value = filter_entity.value + "Кол-во проданных товаров продавца : "
+
+    elif "POSHMARK" in subscription_name:
+        message = "🗓 Укажите дату регистрации продавца\nПример: (год-месяц-число) 2015-12-24"
+        value = filter_entity.value + "Дата регистрации продавца : "
     await FilterDao.update(filter_id, value=value)
     button = [[Button.text("Не использовать фильтр", resize=True, single_use=True)]]
     await client_bot.send_message(user_id, message=message, buttons=button)
 
 
 async def fifth_filter(user_id, subscription_id, filter_id):
-    message = "🗓 Укажите дату создания объявления\nПример: (год-месяц-число) 2015-12-24"
+    subscription_name = (await SubscriptionDao.find_one_or_none(id=subscription_id)).name
     filter_entity = await FilterDao.find_one_or_none(id=filter_id)
-    value = filter_entity.value + "Дата создания объявления : "
+    if "DEPOP" in subscription_name:
+        message = "🗓 Укажите минимальный рейтинг продавца (1-5)\nПример: 4"
+        value = filter_entity.value + "Рейтинг продавца : "
+
+    elif "GRAILED" in subscription_name or "SCHPOCK" in subscription_name \
+            or "WALLAPOP" in subscription_name:
+        message = "🗓 Укажите дату регистрации продавца\nПример: (год-месяц-число) 2015-12-24"
+        value = filter_entity.value + "Дата регистрации продавца : "
+
+    elif "POSHMARK" in subscription_name or "VINTED" in subscription_name:
+        message = "🗓 Укажите дату создания объявления\nПример: (год-месяц-число) 2015-12-24"
+        value = filter_entity.value + "Дата создания объявления : "
+
+    await FilterDao.update(filter_id, value=value)
+    button = [[Button.text("Не использовать фильтр", resize=True, single_use=True)]]
+    await client_bot.send_message(user_id, message=message, buttons=button)
+
+
+async def sixth_filter(user_id, subscription_id, filter_id):
+    subscription_name = (await SubscriptionDao.find_one_or_none(id=subscription_id)).name
+    filter_entity = await FilterDao.find_one_or_none(id=filter_id)
+
+    if "GRAILED" in subscription_name or "SCHPOCK" in subscription_name \
+            or "WALLAPOP" in subscription_name:
+        message = "🗓 Укажите дату создания объявления\nПример: (год-месяц-число) 2015-12-24"
+        value = filter_entity.value + "Дата создания объявления : "
+
+    elif "VINTED" in subscription_name:
+        message = "🗓 Укажите минимальный рейтинг продавца (1-5)\nПример: 4"
+        value = filter_entity.value + "Рейтинг продавца : "
+
+    await FilterDao.update(filter_id, value=value)
+    button = [[Button.text("Не использовать фильтр", resize=True, single_use=True)]]
+    await client_bot.send_message(user_id, message=message, buttons=button)
+
+
+async def seventh_filter(user_id, subscription_id, filter_id):
+    subscription_name = (await SubscriptionDao.find_one_or_none(id=subscription_id)).name
+    filter_entity = await FilterDao.find_one_or_none(id=filter_id)
+
+    if "GRAILED" in subscription_name or "SCHPOCK" in subscription_name \
+            or "WALLAPOP" in subscription_name:
+        message = "🗓 Укажите минимальный рейтинг продавца (1-5)\nПример: 4"
+        value = filter_entity.value + "Рейтинг продавца : "
+
     await FilterDao.update(filter_id, value=value)
     button = [[Button.text("Не использовать фильтр", resize=True, single_use=True)]]
     await client_bot.send_message(user_id, message=message, buttons=button)

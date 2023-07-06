@@ -1,8 +1,10 @@
 import asyncio
 import json
+import logging
 
 import aiohttp
 from telethon import Button
+from telethon.errors import UserIsBlockedError
 
 from src.main import client_bot
 from src.utils.utils import moscow_time, truncate_string
@@ -11,7 +13,7 @@ from src.utils.utils import moscow_time, truncate_string
 class Grailed:
 
     def __init__(self, urls, location, items_quantity, items_quantity_sold, seller_registration_date,
-                 ad_created_date, seller_rating, chat_id, price_min=0, price_max=200000):
+                 ad_created_date, seller_rating, chat_id, price_min, price_max):
         self.price_min = price_min
         self.price_max = price_max
         self.location = location
@@ -19,7 +21,7 @@ class Grailed:
         self.items_quantity_sold = int(items_quantity_sold) if items_quantity_sold != "" else None
         self.seller_registration_date = seller_registration_date if seller_registration_date != "" else None
         self.ad_created_date = ad_created_date if ad_created_date != "" else None
-        self.seller_rating = seller_rating if seller_rating != "" else None
+        self.seller_rating = int(seller_rating) if seller_rating != "" else None
         self.urls = urls
         self.chat_id = chat_id
         self.grailed_url = "https://mnrwefss2q-2.algolianet.com/1/indexes/*/queries?x-algolia-agent=Algolia%20for%20JavaScript%20(4.14.3)%3B%20Browser%3B%20JS%20Helper%20(3.11.3)%3B%20react%20(18.2.0)%3B%20react-instantsearch%20(6.39.1)"
@@ -38,15 +40,26 @@ class Grailed:
             return await response.json()
 
     async def parse_object(self, session, query):
-        post_data = self.get_post_data(query, 0)
-        response = await self.fetch_query_post(session, post_data)
-        number_of_pages = response['results'][0]["nbPages"]
-        await self.parse_items(session, response['results'][0]['hits'])
-        if number_of_pages > 1:
-            for i in range(1, number_of_pages):
-                post_data = self.get_post_data(query, i)
-                response = await self.fetch_query_post(session, post_data)
-                await self.parse_items(session, response['results'][0]['hits'])
+        try:
+            post_data = self.get_post_data(query, 0)
+            response = await self.fetch_query_post(session, post_data)
+            number_of_pages = response['results'][0]["nbPages"]
+            await self.parse_items(session, response['results'][0]['hits'])
+            if number_of_pages > 1:
+                for i in range(1, number_of_pages):
+                    post_data = self.get_post_data(query, i)
+                    response = await self.fetch_query_post(session, post_data)
+                    await self.parse_items(session, response['results'][0]['hits'])
+            await asyncio.sleep(0)
+        except asyncio.CancelledError:
+            logging.error(f'parse_object Cancelled ERROR')
+            raise
+        except UserIsBlockedError:
+            logging.error(f"parse_object Bot was blocked by the user: {self.chat_id}")
+            return
+        except Exception as e:
+            logging.error(f'parse_object ERROR {e}')
+            return
 
     async def parse_items(self, session, items):
         for item in items:
@@ -89,9 +102,6 @@ class Grailed:
         if self.ad_created_date is not None:
             if self.ad_created_date != ad_created_date:
                 return False
-        if self.items_quantity is not None:
-            if self.items_quantity > items_quantity:
-                return False
         if self.items_quantity_sold is not None:
             if self.items_quantity_sold > items_quantity_sold:
                 return False
@@ -122,6 +132,7 @@ class Grailed:
 
     async def send_message_with_photo(self, message, photo_link):
         try:
+            print(photo_link)
             button = [
                 [
                     Button.text("Остановить парсер", resize=True, single_use=True)
@@ -166,3 +177,11 @@ class Grailed:
                 tasks.append(task)
             responses = await asyncio.gather(*tasks)
             return responses
+
+
+async def run_grailed(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
+                      ad_created_date, seller_rating, chat_id, price_min, price_max):
+    parser = Grailed(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
+                     ad_created_date, seller_rating, chat_id, price_min, price_max)
+    await parser.main()
+    await client_bot.send_message(chat_id, message="✅ Парсер завершен")

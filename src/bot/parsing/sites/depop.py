@@ -13,19 +13,27 @@ from src.utils.validation import Validation
 class DepopParser:
     def __init__(self, urls, price_min, price_max,
                  quantity_of_ads, seller_rating,
-                 # seller_registration_date,
                  ad_created_date, country,
-                 currency, chat_id):
+                 chat_id):
         self.price_min = price_min if price_min != "" else None
         self.price_max = price_max if price_max != "" else None
         self.quantity_of_ads = int(quantity_of_ads) if quantity_of_ads != "" else None
         self.seller_rating = int(seller_rating) if seller_rating != "" else None
-        # self.seller_registration_date = seller_registration_date if seller_registration_date != "" else None
         self.ad_created_date = ad_created_date if ad_created_date != "" else None
         self.country = country
-        self.currency = currency
+        self.currency = self.get_currency(country)
         self.chat_id = chat_id
         self.urls = self.handle_urls(urls)
+
+    def get_currency(self, country):
+        if country == "au":
+            return "AUD"
+        elif country == "de" or country == "fr" or country == "it":
+            return "EUR"
+        elif country == "gb":
+            return "GBP"
+        elif country == "us":
+            return "USD"
 
     def handle_urls(self, urls):
         urls_list = []
@@ -67,6 +75,7 @@ class DepopParser:
             return
         except Exception as e:
             logging.error(f'parse_object ERROR {e}')
+            return
 
     async def parse_items(self, session, items):
         for item in items:
@@ -105,8 +114,6 @@ class DepopParser:
             name = response['first_name'] + " " + response["last_name"]
             date_updated = time_ago(response['last_seen'])
             rating = f"{response['reviews_rating']}/5"
-            # last_item_url = f"https://webapi.depop.com/api/v1/shop/{response['id']}/products/?limit=200"
-            # date_registered, count = await self.parse_last_item_of_seller(session, last_item_url, response['id'])
             items_sold = response['items_sold']
             return name, date_updated, rating, items_sold
         except Exception as e:
@@ -139,8 +146,6 @@ class DepopParser:
                f"🔔 Был(-а) в сети:  {seller_last_seen} МСК\n" \
                f"⭐ Рейтинг продавца:  {seller_rating}\n" \
                f"📂 Кол-во проданных товаров продавца:  {quantity_sold_items}"
-        # f"🕒 Дата регистрации продавца:  {seller[3]} МСК\n" \
-        # f"📂 Кол-во объявления продавца:  {seller[4]}\n" \
 
         if not await self.send_message_with_photo_alternatives(text, [photo_link, photo_link_480, photo_link_320]):
             pass
@@ -165,28 +170,6 @@ class DepopParser:
                 return True
         return False
 
-    # async def parse_last_item_of_seller(self, session, url, id):
-    #     try:
-    #         count = 0
-    #         response = await self.fetch_query(session, url)
-    #         count = count + len(response['products'])
-    #         end = response['meta']['end']
-    #         while not end:
-    #             cursor = response['meta']['last_offset_id']
-    #             url = f"https://webapi.depop.com/api/v1/shop/{id}/products/?limit=200&offset_id={cursor}"
-    #             print("URL 2", url)
-    #             response = await self.fetch_query(session, url)
-    #             count = count + len(response['products'])
-    #             end = response['meta']['end']
-    #         last_product = response['products'][-1]
-    #         slug = last_product['slug']  # item title
-    #         item_url = f"https://webapi.depop.com/api/v2/product/{slug}"
-    #         result = await self.parse_item(session, item_url)
-    #         date_registered = result[3]
-    #         return date_registered, count
-    #     except Exception as e:
-    #         print("parse_last_item_of_seller", str(e), url)
-
     async def main(self):
         async with aiohttp.ClientSession() as session:
             tasks = []
@@ -199,13 +182,11 @@ class DepopParser:
 
 async def run_depop(urls, price_min, price_max,
                     quantity_of_ads, seller_rating,
-                    # seller_registration_date,
                     ad_created_date, country,
-                    currency, chat_id):
+                    chat_id):
     parser = DepopParser(urls, price_min, price_max,
                          quantity_of_ads, seller_rating,
-                         # seller_registration_date,
                          ad_created_date, country,
-                         currency, chat_id)
+                         chat_id)
     await parser.main()
     await client_bot.send_message(chat_id, message="✅ Парсер завершен")

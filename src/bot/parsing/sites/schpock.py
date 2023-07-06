@@ -1,8 +1,10 @@
 import asyncio
 import json
+import logging
 
 import aiohttp
 from telethon import Button
+from telethon.errors import UserIsBlockedError
 
 from src.main import client_bot
 from src.utils.utils import truncate_string, convert_utc_to_moscow
@@ -86,21 +88,32 @@ class Schpock:
             return await response.json()
 
     async def parse_object(self, session, query):
-        offset = 0
-        lat_lng = self.get_lat_lng()
-        post_data = self.get_post_data(query, lat_lng[0], lat_lng[1], offset)
-        response = await self.fetch_query_post(session, post_data)
-        count = response['data']["itemSearch"]["count"]
-        await self.parse_items(session, response["data"]["itemSearch"]["itemResults"][0]["items"])
-        while count == 30:
-            offset = offset + 30
+        try:
+            offset = 0
+            lat_lng = self.get_lat_lng()
             post_data = self.get_post_data(query, lat_lng[0], lat_lng[1], offset)
             response = await self.fetch_query_post(session, post_data)
-            # if 'data' in response:
             count = response['data']["itemSearch"]["count"]
             await self.parse_items(session, response["data"]["itemSearch"]["itemResults"][0]["items"])
-            # elif 'errors' in response:
-            # change_header()
+            while count == 30:
+                offset = offset + 30
+                post_data = self.get_post_data(query, lat_lng[0], lat_lng[1], offset)
+                response = await self.fetch_query_post(session, post_data)
+                # if 'data' in response:
+                count = response['data']["itemSearch"]["count"]
+                await self.parse_items(session, response["data"]["itemSearch"]["itemResults"][0]["items"])
+                # elif 'errors' in response:
+                # change_header()
+            await asyncio.sleep(0)
+        except asyncio.CancelledError:
+            logging.error(f'parse_object Cancelled ERROR')
+            raise
+        except UserIsBlockedError:
+            logging.error(f"parse_object Bot was blocked by the user: {self.chat_id}")
+            return
+        except Exception as e:
+            logging.error(f'parse_object ERROR {e}')
+            return
 
     async def parse_items(self, session, items):
         for item in items:
@@ -202,3 +215,11 @@ class Schpock:
                 tasks.append(task)
             responses = await asyncio.gather(*tasks)
             return responses
+
+
+async def run_schpock(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
+                      ad_created_date, seller_rating, chat_id, price_min, price_max):
+    parser = Schpock(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
+                     ad_created_date, seller_rating, chat_id, price_min, price_max)
+    await parser.main()
+    await client_bot.send_message(chat_id, message="✅ Парсер завершен")

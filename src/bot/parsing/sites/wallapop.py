@@ -1,7 +1,9 @@
 import asyncio
+import logging
 
 import aiohttp
 from telethon import Button
+from telethon.errors import UserIsBlockedError
 
 from src.main import client_bot
 from src.utils.utils import convert_utc_to_moscow, truncate_string
@@ -9,7 +11,7 @@ from src.utils.utils import convert_utc_to_moscow, truncate_string
 
 class WallaPop:
     def __init__(self, urls, location, items_quantity, items_quantity_sold, seller_registration_date,
-                 ad_created_date, seller_rating, chat_id, price_min=0, price_max=200000):
+                 ad_created_date, seller_rating, chat_id, price_min, price_max):
         self.price_min = price_min
         self.price_max = price_max
         self.location = location
@@ -36,20 +38,31 @@ class WallaPop:
             return await response.json()
 
     async def parse_object(self, session, query):
-        lat_lng = self.get_lat_lng()
-        start = 0
-        url = f"https://api.wallapop.com/api/v3/general/search?filters_source=search_box&keywords={query}&longitude={lat_lng[1]}" \
-              f"&latitude={lat_lng[0]}&start={start}&min_sale_price={self.price_min}&max_sale_price={self.price_max}"
-        response = await self.fetch_query_get(session, url)
-        count = len(response['search_objects'])
-        await self.parse_items(session, response["search_objects"])
-        while count != 0:
-            start = start + 40
+        try:
+            lat_lng = self.get_lat_lng()
+            start = 0
             url = f"https://api.wallapop.com/api/v3/general/search?filters_source=search_box&keywords={query}&longitude={lat_lng[1]}" \
                   f"&latitude={lat_lng[0]}&start={start}&min_sale_price={self.price_min}&max_sale_price={self.price_max}"
             response = await self.fetch_query_get(session, url)
             count = len(response['search_objects'])
             await self.parse_items(session, response["search_objects"])
+            while count != 0:
+                start = start + 40
+                url = f"https://api.wallapop.com/api/v3/general/search?filters_source=search_box&keywords={query}&longitude={lat_lng[1]}" \
+                      f"&latitude={lat_lng[0]}&start={start}&min_sale_price={self.price_min}&max_sale_price={self.price_max}"
+                response = await self.fetch_query_get(session, url)
+                count = len(response['search_objects'])
+                await self.parse_items(session, response["search_objects"])
+            await asyncio.sleep(0)
+        except asyncio.CancelledError:
+            logging.error(f'parse_object Cancelled ERROR')
+            raise
+        except UserIsBlockedError:
+            logging.error(f"parse_object Bot was blocked by the user: {self.chat_id}")
+            return
+        except Exception as e:
+            logging.error(f'parse_object ERROR {e}')
+            return
 
     async def parse_items(self, session, items):
         for item in items:
@@ -152,3 +165,11 @@ class WallaPop:
                 tasks.append(task)
             responses = await asyncio.gather(*tasks)
             return responses
+
+
+async def run_wallapop(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
+                       ad_created_date, seller_rating, chat_id, price_min, price_max):
+    parser = WallaPop(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
+                      ad_created_date, seller_rating, chat_id, price_min, price_max)
+    await parser.main()
+    await client_bot.send_message(chat_id, message="✅ Парсер завершен")

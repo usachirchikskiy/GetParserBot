@@ -1,11 +1,12 @@
-import re
+import random
+import string
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
-import aiohttp
 import pytz
 import requests
-from telethon import Button
+
+from src.utils.constants import depop, grailed, poshmark, schpock, vinted, wallapop
 
 
 def convert_to_float(number):
@@ -47,6 +48,19 @@ def moscow_time(timestamp, pattern="%Y-%m-%d %H:%M:%S.%f"):
     return time
 
 
+def convert_from_moscow_to_utc(user_time: str):
+    msk_tz = pytz.timezone('Europe/Moscow')
+
+    if len(user_time) == 5:
+        user_time = datetime.now().strftime('%Y-%m-%d') + " " + user_time
+
+    user_time = datetime.strptime(user_time, '%Y-%m-%d %H:%M')
+    user_time = msk_tz.localize(user_time)
+
+    utc_time = user_time.astimezone(pytz.utc)
+    return utc_time
+
+
 def convert_utc_to_moscow(timestamp):
     utc_datetime = datetime.fromtimestamp(timestamp / 1000, timezone.utc)
     moscow_timezone = timezone(timedelta(hours=3))
@@ -68,16 +82,40 @@ def flag(country):
         return "🇮🇹"
     elif country == "FR":
         return "🇫🇷"
-
-
-# TODO() make proper input_error
-async def handle_input_error(event):
-    buttons = [
-        [
-            Button.inline("Назад", "Назад в меню"),
-        ],
-    ]
-    await event.respond("**Введите число ❗️**", buttons=buttons)
+    elif country == "CA":
+        return "🇨🇦"
+    elif country == "EU":
+        return "🌍"
+    elif country == "ASIA":
+        return "🌏"
+    elif country == "IN":
+        return "🇮🇳"
+    elif country == "AT":
+        return "🇦🇹"
+    elif country == "ES":
+        return "🇪🇸"
+    elif country == "FI":
+        return "🇫🇮"
+    elif country == "NL":
+        return "🇳🇱"
+    elif country == "NO":
+        return "🇳🇴"
+    elif country == "SE":
+        return "🇸🇪"
+    elif country == "BE":
+        return "🇧🇪"
+    elif country == "HU":
+        return "🇭🇺"
+    elif country == "LT":
+        return "🇱🇹"
+    elif country == "LU":
+        return "🇱🇺"
+    elif country == "PL":
+        return "🇵🇱"
+    elif country == "PT":
+        return "🇵🇹"
+    elif country == "SK":
+        return "🇸🇰"
 
 
 def link_remove_default(link):
@@ -103,20 +141,30 @@ def link_remove_price_range(link):
     return new_url
 
 
-def get_currency(country):
-    if country == "au":
-        return "AUD"
-    elif country == "de" or country == "fr" or country == "it":
-        return "EUR"
-    elif country == "gb":
-        return "GBP"
-    elif country == "us":
-        return "USD"
-
-
 def truncate_string(string):
     if len(string) > 180:
         truncated_string = string[:180] + "..."
         return truncated_string
     else:
         return string
+
+
+def description_of_area(subscription):
+    if "DEPOP" in subscription:
+        return depop
+    elif "GRAILED" in subscription:
+        return grailed
+    elif "POSHMARK" in subscription:
+        return poshmark
+    elif "SCHPOCK" in subscription:
+        return schpock
+    elif "VINTED" in subscription:
+        return vinted
+    elif "WALLAPOP" in subscription:
+        return wallapop
+
+
+def generate_random_string(length):
+    letters = string.ascii_letters
+    random_string = ''.join(random.choice(letters) for _ in range(length))
+    return random_string

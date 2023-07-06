@@ -2,12 +2,14 @@ import json
 
 from aiocryptopay.const import InvoiceStatus
 from telethon import Button, events
+from telethon.tl.types import UpdateBotCallbackQuery, UpdateNewMessage
 
 from src.database.dao.Associations import UserPaymentSystemDao
 from src.database.dao.PaymentSystemDao import PaymentSystemDao
 from src.main import client_bot, crypto_pay
 from src.database.dao.UserDao import UserDao
-from src.utils.utils import convert_to_float, handle_input_error
+from src.utils.constants import percentage_number
+from src.utils.validation import Validation
 
 
 def crypto_bot_callback_filter(event):
@@ -30,8 +32,13 @@ async def handle_crypto_bot(event):
             Button.inline("Назад", data=json.dumps({"action": "back_to_top_up"})),
         ],
     ]
-    user_id = event.original_update.user_id
-    payment_system_id = (await PaymentSystemDao.find_one_or_none(title="Nothing")).id
+
+    if isinstance(event.original_update, UpdateBotCallbackQuery):
+        user_id = event.original_update.user_id
+    elif isinstance(event.original_update, UpdateNewMessage):
+        user_id = event.original_update.message.peer_id.user_id
+
+    payment_system_id = (await PaymentSystemDao.find_one_or_none(title=None)).id
     await UserPaymentSystemDao.add_or_update(user_id=user_id, payment_system_id=payment_system_id, type="")
     await client_bot.edit_message(event.chat_id, event.original_update.msg_id, "Выберите криптовалюту", buttons=buttons)
 
@@ -57,7 +64,11 @@ async def crypto_bot_callback_handler(event):
 
 
 async def handle_crypto_type(event, type):
-    user_id = event.original_update.user_id
+    if isinstance(event.original_update, UpdateBotCallbackQuery):
+        user_id = event.original_update.user_id
+    elif isinstance(event.original_update, UpdateNewMessage):
+        user_id = event.original_update.message.peer_id.user_id
+
     payment_system_id = (await PaymentSystemDao.find_one_or_none(title="Cryptobot")).id
     await UserPaymentSystemDao.add_or_update(user_id=user_id, payment_system_id=payment_system_id, type=type)
     buttons = [
@@ -70,17 +81,26 @@ async def handle_crypto_type(event, type):
 
 
 async def check_input_crypto_bot(event):
+    if isinstance(event.original_update, UpdateBotCallbackQuery):
+        user_id = event.original_update.user_id
+    elif isinstance(event.original_update, UpdateNewMessage):
+        user_id = event.original_update.message.peer_id.user_id
+
     msg = event.raw_text
-    if convert_to_float(msg):
+    if Validation.validate_positive_float(msg):
         await payment_generated(event, float(msg))
     else:
-        await handle_input_error(event)
+        await client_bot.send_message(user_id, message=Validation.incorrect_input_balance)
 
 
 async def payment_generated(event, amount_to_pay):
-    user_id = event.original_update.message.peer_id.user_id
+    if isinstance(event.original_update, UpdateBotCallbackQuery):
+        user_id = event.original_update.user_id
+    elif isinstance(event.original_update, UpdateNewMessage):
+        user_id = event.original_update.message.peer_id.user_id
+
     crypto_type = (await UserPaymentSystemDao.find_one_or_none(user_id=user_id)).type
-    payment_system_id = (await PaymentSystemDao.find_one_or_none(title="Nothing")).id
+    payment_system_id = (await PaymentSystemDao.find_one_or_none(title=None)).id
     await UserPaymentSystemDao.add_or_update(user_id=user_id, payment_system_id=payment_system_id, type="")
     result = 1  # TODO() await coin_market.get_in_crypto(user.type, amount_to_pay)
     invoice = await crypto_pay.create_invoice(crypto_type, result)
@@ -104,21 +124,41 @@ async def payment_generated(event, amount_to_pay):
 
 
 async def handle_check_payment(event, invoice_id, amount_to_pay):
-    id = event.original_update.user_id
+    if isinstance(event.original_update, UpdateBotCallbackQuery):
+        user_id = event.original_update.user_id
+    elif isinstance(event.original_update, UpdateNewMessage):
+        user_id = event.original_update.message.peer_id.user_id
+
     result = await crypto_pay.get_invoice(invoice_id)
     if result.status == InvoiceStatus.ACTIVE:
         text = "❗ Счёт всё ещё не оплачен"
-        await client_bot.send_message(event.chat_id, text)
+        await client_bot.send_message(user_id, text)
     elif result.status == InvoiceStatus.PAID:
-        user = await UserDao.find_one_or_none(id=id)
+        user = await UserDao.find_one_or_none(id=user_id)
         balance = user.balance + amount_to_pay
-        await UserDao.update(id, balance=balance)
+
+        await UserDao.update(user_id, balance=balance)
         text = f"✅ Счёт успешно оплачен. Ваш баланс пополнен на {amount_to_pay} RUB"
         buttons = [[
             Button.inline("Назад в меню", data=json.dumps({"action": "back_to_main_menu"}))
         ]]
-        await client_bot.edit_message(event.chat_id, event.original_update.msg_id, text, buttons=buttons)
+        await client_bot.edit_message(user_id, event.original_update.msg_id, text, buttons=buttons)
+
+        if user.referrer_id:
+            user_referrer = await UserDao.find_one_or_none(id=user.referrer_id)
+            if user_referrer:
+                referal_earned = round(amount_to_pay * percentage_number, 2)
+                earned = user_referrer.earned + referal_earned
+                balance = user_referrer.balance + referal_earned
+                await UserDao.update(id=user.referrer_id, balance=balance, earned=earned)
+                await client_bot.send_message(entity=user.referrer_id,
+                                              message=f"✅ Ваш баланс пополнен на {referal_earned} RUB (Реферальная система)")
 
 
 async def handle_cancel_payment(event):
-    await client_bot.edit_message(event.chat_id, event.original_update.msg_id, "❌ Оплата отменена")
+    buttons = [
+        [
+            Button.inline("Назад", data=json.dumps({"action": "back_to_crypto_bot"})),
+        ],
+    ]
+    await client_bot.edit_message(event.chat_id, event.original_update.msg_id, "❌ Оплата отменена", buttons=buttons)

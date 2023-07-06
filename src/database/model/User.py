@@ -1,8 +1,9 @@
 from datetime import datetime
 
 from sqlalchemy import Column, String, BigInteger, Integer, Float, ForeignKey, Boolean, UniqueConstraint, \
-    TIMESTAMP
-from sqlalchemy.orm import relationship
+    TIMESTAMP, ARRAY
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship, backref
 
 from src.database.database import Base
 
@@ -10,7 +11,7 @@ from src.database.database import Base
 class UserSubscriptionAssociation(Base):
     __tablename__ = "user_subscription_association"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    user_id = Column(BigInteger, ForeignKey('user.id', ondelete='CASCADE'))
     subscription_id = Column(Integer, ForeignKey('subscription.id', ondelete='CASCADE'))
     is_favourite = Column(Boolean, default=False)
     expired_at = Column(TIMESTAMP)
@@ -22,9 +23,9 @@ class UserSubscriptionAssociation(Base):
 class UserSubscriptionFilterAssociation(Base):
     __tablename__ = "user_subscription_filter_association"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    user_id = Column(BigInteger, ForeignKey('user.id', ondelete='CASCADE'))
     subscription_id = Column(Integer, ForeignKey('subscription.id', ondelete='CASCADE'))
-    filter_id = Column(Integer, ForeignKey('filter.id', ondelete='CASCADE'))
+    filter_id = Column(BigInteger, ForeignKey('filter.id', ondelete='CASCADE'))
     is_favourite = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     title = Column(String)
@@ -41,7 +42,7 @@ class UserSubscriptionFilterAssociation(Base):
 class UserPaymentSystemAssociation(Base):
     __tablename__ = "user_payment_system_association"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id', ondelete='CASCADE'))
+    user_id = Column(BigInteger, ForeignKey('user.id', ondelete='CASCADE'))
     payment_system_id = Column(Integer, ForeignKey('payment_system.id', ondelete='CASCADE'))
     type = Column(String)
 
@@ -54,6 +55,12 @@ class User(Base):
     id = Column(BigInteger, primary_key=True)
     balance = Column(Float)
     bot_message = Column(String)
+    referrer_id = Column(BigInteger, ForeignKey('user.id'))
+    referrals = relationship('User', backref=backref('referrer', remote_side=[id]))
+    earned = Column(Float)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    blocked = Column(Boolean, default=False)
+
     subscriptions = relationship(
         "UserSubscriptionAssociation",
         back_populates="user",
@@ -99,7 +106,7 @@ class Subscription(Base):
 class Filter(Base):
     __tablename__ = 'filter'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     value = Column(String)
     question_number = Column(Integer)
     user_subscription_associations = relationship(
@@ -122,16 +129,20 @@ class PaymentSystem(Base):
     )
 
 
-# — Кол-во объявлений продавца
-# — Кол-во проданных товаров
-# — Дата регистрации продавца
-# — Дата создания объявления
-# — Рейтинг продавца
+class Promocode(Base):
+    __tablename__ = 'promocode'
+    id = Column(Integer, primary_key=True)
+    title = Column(String)
+    sum = Column(Float)
+    activation_quantity = Column(Integer)
+    used_quantity = Column(Integer, default=0)
 
 
-# — Кол-во объявлений продавца
-# — Кол-во проданных товаров
-# — Кол-во купленных товаров
-# — Дата регистрации продавца
-# — Дата создания объявления
-# — Рейтинг продавца
+class Mailing(Base):
+    __tablename__ = 'mailing'
+    id = Column(BigInteger, primary_key=True)
+    access_hash = Column(BigInteger)
+    type = Column(String)
+    entities = Column(ARRAY(JSONB))
+    message = Column(String)
+    send_at = Column(TIMESTAMP)

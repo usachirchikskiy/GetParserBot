@@ -9,6 +9,8 @@ class Validation:
     incorrect_input_quantity = "⚠️Неверный ввод\nВведите целое число > 0"
     incorrect_input_date = "⚠️Неверный ввод\nПример ввода: (год-месяц-число) 2015-12-24"
     incorrect_input_yes_or_no = "⚠️Неверный ввод\nВведите да\нет"
+    incorrect_input_balance = "⚠️Неверный ввод\nВведите число > 0"
+    incorrect_input = "⚠️Неверный ввод"
 
     @staticmethod
     def is_link(link):
@@ -74,4 +76,27 @@ class Validation:
             else:
                 return False
         except ValueError:
+            return False
+
+    @staticmethod
+    def validate_positive_float(number):
+        try:
+            number = float(number)
+            if number > 0:
+                return True
+            else:
+                return False
+        except Exception as e:
+            return False
+
+    @staticmethod
+    def validate_time_or_datetime(string):
+        time_pattern = r'^\d{2}:\d{2}$'
+        datetime_pattern = r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$'
+
+        if re.match(time_pattern, string):
+            return True
+        elif re.match(datetime_pattern, string):
+            return True
+        else:
             return False

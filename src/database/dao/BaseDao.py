@@ -23,6 +23,13 @@ class BaseDao:
             return result.scalars().all()
 
     @classmethod
+    async def find_by_ids(cls, *ids):
+        async with async_session_maker() as session:
+            query = select(cls.model).where(cls.model.id.in_(ids))
+            result = await session.execute(query)
+            return result.mappings().all()
+
+    @classmethod
     async def add(cls, **data):
         try:
             query = insert(cls.model).values(**data).returning(cls.model)

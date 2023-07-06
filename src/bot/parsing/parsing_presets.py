@@ -37,6 +37,11 @@ async def saved_presets_callback_handler(event):
         await (SubscriptionDao.find_one_or_none(id=user_filter_subscription.subscription_id))).name
     filter_id = user_filter_subscription.filter_id
     filter_entity = await FilterDao.find_one_or_none(id=filter_id)
+
+    lines = filter_entity.value.split('\n')
+    result_lines = [line + '\n\n' for line in lines]
+    result = ''.join(result_lines)
+
     buttons = [
         [Button.inline(f"🔍 Запустить", data=json.dumps({
             "preset_run": [filter_id, user_filter_subscription.subscription_id]
@@ -48,7 +53,7 @@ async def saved_presets_callback_handler(event):
         [Button.inline(f"Назад", data=json.dumps({"action": f"presets {subscription_title}"}))]
     ]
     await client_bot.send_file(event.chat_id,
-                               caption="Ваш пресет:" + user_filter_subscription.title + "\n" + filter_entity.value,
+                               caption="Ваш пресет: " + user_filter_subscription.title + "\n" + result,
                                file=media,
                                buttons=buttons)
 

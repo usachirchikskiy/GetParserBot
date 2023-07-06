@@ -1,6 +1,7 @@
 import json
 
 from telethon import Button, events
+from telethon.tl.types import UpdateBotCallbackQuery, UpdateNewMessage
 
 from src.bot.top_up.bit_papa import handle_bit_papa
 from src.bot.top_up.crypto_bot import handle_crypto_bot
@@ -49,7 +50,11 @@ async def top_up_callback_handler(event):
     elif action == "payok":
         pass
     elif action == "back_to_top_up":
-        user_id = event.original_update.user_id
-        payment_system_id = (await PaymentSystemDao.find_one_or_none(title="Nothing")).id
+        if isinstance(event.original_update, UpdateBotCallbackQuery):
+            user_id = event.original_update.user_id
+        elif isinstance(event.original_update, UpdateNewMessage):
+            user_id = event.original_update.message.peer_id.user_id
+
+        payment_system_id = (await PaymentSystemDao.find_one_or_none(title=None)).id
         await UserPaymentSystemDao.add_or_update(user_id=user_id, payment_system_id=payment_system_id, type="")
         await handle_top_up(event)

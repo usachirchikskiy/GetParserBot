@@ -9,9 +9,6 @@ from src.database.model.User import UserSubscriptionAssociation, UserSubscriptio
     UserPaymentSystemAssociation
 
 
-# from src.database.model.User import subscription_association_table, filter_association_table, payment_association_table
-
-
 class UserSubscriptionDao(BaseDao):
     model = UserSubscriptionAssociation
 
