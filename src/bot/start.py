@@ -58,7 +58,7 @@ async def menu(event, from_callback):
         # Button.inline("Настройки", data=json.dumps({"action": "settings"}))
         # ],
     ]
-    if user_id == admin_id:
+    if user_id in admin_id:
         admin_button = [
             Button.inline("Войти в панель администратора", data=json.dumps({"action": "admin"})),
         ]

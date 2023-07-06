@@ -17,12 +17,12 @@ sites = [
     # next
     ["🇪🇸 WALLAPOP.ES", "🇫🇷 WALLAPOP.FR"],
     ["🇮🇹 WALLAPOP.IT", "🇵🇹 WALLAPOP.PT"],
-    ["🇬🇧 WALLAPOP.UK","🇺🇸 POSHMARK.US"],
+    ["🇬🇧 WALLAPOP.UK", "🇺🇸 POSHMARK.US"],
     ["🇦🇹 SCHPOCK.AT", "🇩🇪 SCHPOCK.DE"],
     ["🇪🇸 SCHPOCK.ES", "🇫🇮 SCHPOCK.FI"],
     ["🇫🇷 SCHPOCK.FR", "🇮🇹 SCHPOCK.IT"],
     ["🇳🇱 SCHPOCK.NL", "🇳🇴 SCHPOCK.NO"],
-    #next
+    # next
     ["🇸🇪 SCHPOCK.SE", "🇬🇧 SCHPOCK.UK"],
     ["🇺🇸 SCHPOCK.US", "🇦🇹 VINTED.AT"],
     ["🇧🇪 VINTED.BE", "🇺🇸 VINTED.COM"],
@@ -30,7 +30,7 @@ sites = [
     ["🇪🇸 VINTED.ES", "🇫🇷 VINTED.FR"],
     ["🇭🇺 VINTED.HU", "🇮🇹 VINTED.IT"],
     ["🇱🇹 VINTED.LT", "🇱🇺 VINTED.LU"],
-    #next
+    # next
     ["🇳🇱 VINTED.NL", "🇵🇱 VINTED.PL"],
     ["🇵🇹 VINTED.PT", "🇸🇪 VINTED.SE"],
     ["🇸🇰 VINTED.SK", "🇬🇧 VINTED.UK"]
@@ -102,4 +102,4 @@ wallapop = '''
 tech_support_link = "https://t.me/Jikolav"
 percentage_string = "5 %"
 percentage_number = 0.05
-admin_id = [1574853044,5497962695]
+admin_id = [1574853044, 5497962695]
