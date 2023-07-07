@@ -1,10 +1,20 @@
+import asyncio
 import math
 
-from src.config import STATIC
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from src.config import STATIC, DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME
+
+jobs = []
 parsing_tasks = {}
 
-media = STATIC + "get_parser.jpg"
+semaphore = asyncio.Semaphore(30)
+jobstores = {
+    'default': SQLAlchemyJobStore(url=f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+}
+scheduler = AsyncIOScheduler(jobstores=jobstores)
+scheduler.start()
 
 sites = [
     ["🇦🇺 DEPOP.AU", "🇩🇪 DEPOP.DE"],
@@ -99,7 +109,12 @@ wallapop = '''
 — Рейтинг продавца
 '''
 
+media = STATIC + "get_parser.jpg"
 tech_support_link = "https://t.me/Jikolav"
 percentage_string = "5 %"
 percentage_number = 0.05
 admin_id = [1574853044, 5497962695]
+bot_token = "6396996150:AAGf10I36Pmgp3l46L_INqHvANp8vfb6dFE"
+api_id = 16819926
+api_hash = "65788ccadd6ccbd8695f19710b41a2fd"
+user_bitpapa = "user_bitpapa"

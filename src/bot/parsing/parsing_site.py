@@ -71,8 +71,9 @@ async def parsing_site_callback_handler(event):
 
 
 async def first_filter(chat_id, subscription_id):
+    # language_of_words = await get_language_of_words(subscription_id)
     buttons = [[Button.inline("Назад", data=json.dumps({"action": "begin_parsing"}))]]
-    message = "💡 Введите ключевые слова через запятую [Max: 10]"
+    message = f"💡 Введите ключевые слова через запятую [Max: 10]." #{language_of_words}
     # "💡 Введите ссылки на категории или ключевые слова через запятую [Max: 10]" \
     # "\n\nПример ссылки: https://www.depop.com/search/?q=vintage,\n" \
     # "https://www.depop.com/search/?q=nike+air+force&priceMin=1&priceMax=123123"
@@ -207,3 +208,10 @@ async def add_to_favourite(user_id, subscription_id):
     user_subscription = await UserSubscriptionDao.find_one_or_none(user_id=user_id, subscription_id=subscription_id)
     is_favourite = user_subscription.is_favourite
     await UserSubscriptionDao.update(user_subscription.id, is_favourite=not is_favourite)
+
+
+async def get_language_of_words(subscription_id):
+    subscription = await SubscriptionDao.find_one_or_none(id=subscription_id)
+    if "GRAILED" in subscription.name or "POSHMARK" in subscription.name:
+        return "Язык английский. Пример: jeans"
+    pass

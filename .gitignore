@@ -1,6 +1,6 @@
 .idea/
 migrations/versions/*
-!migrations/versions/init.txt
+!migrations/versions/.gitkeep
 venv/
 .env
-test.py
+src/test/test.py

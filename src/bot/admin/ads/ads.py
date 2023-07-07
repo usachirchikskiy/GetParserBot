@@ -1,30 +1,18 @@
 import asyncio
 import json
-from datetime import datetime
 
 import pytz
 import telethon
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pytz import utc
 from telethon import events, Button
 from telethon.tl.types import UpdateBotCallbackQuery, UpdateNewMessage, Message, MessageMediaDocument, \
     MessageMediaPhoto, InputDocument, InputPhoto
 
-from src.config import DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME
 from src.database.dao.MailingDao import MailingDao
 from src.database.dao.UserDao import UserDao
 from src.database.model.User import Mailing
 from src.main import client_bot
-from src.utils.utils import convert_from_moscow_to_utc, moscow_time
-
-jobs = []
-semaphore = asyncio.Semaphore(30)
-jobstores = {
-    'default': SQLAlchemyJobStore(url=f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
-}
-scheduler = AsyncIOScheduler(jobstores=jobstores)
-scheduler.start()
+from src.utils.constants import semaphore, scheduler
+from src.utils.utils import moscow_time
 
 
 def ads_callback_filter(event):
@@ -53,7 +41,7 @@ async def handle_ads(event):
             Button.inline("📥 Рассылка", data=json.dumps({"action": "ads_mailing"})),
         ],
         [
-            Button.inline("Назад", data=json.dumps({"action": "admin_ads"})),
+            Button.inline("Назад", data=json.dumps({"action": "admin"})),
         ]]
     await client_bot.send_message(user_id, message="💰 Реклама", buttons=buttons)
 
@@ -202,7 +190,10 @@ async def mailing_callback_handler(event):
         await send_preview_message(user_id, mailing_message[0], mailing_message[1], mailing_message[2])
 
     elif "cancel_mailing_" in action:
-        await client_bot.edit_message(event.chat_id, event.original_update.msg_id, "✅ Рассылка успешно удалена")
+        buttons = [[
+            Button.inline("Назад", data=json.dumps({"action": "admin_ads"})),
+        ]]
+        await client_bot.edit_message(event.chat_id, event.original_update.msg_id, "✅ Рассылка успешно удалена",buttons=buttons)
 
 
 async def get_mailing_message(mailing_id):

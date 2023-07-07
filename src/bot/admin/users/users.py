@@ -21,7 +21,7 @@ def user_change_block_callback_filter(event):
     data = json.loads(event.data.decode("utf-8"))
     if "action" in data:
         action = data['action']
-        if "users_change_balance_" in action or "users_block_" in action:
+        if "users_change_balance_" in action or "users_block_" in action or "users_unblock_" in action:
             return True
 
 
@@ -106,11 +106,15 @@ async def handle_users_search(event, search_query):
             id = f"ID: {user_found.id}"
             username = f"USERNAME: @{user_found.username}"
             balance = f"БАЛАНС: {user.balance}"
-            message = f"{id}\n{username}\n{balance}\n"
+            blocked = "ЗАБЛОКИРОВАН: ДА" if user.blocked else "ЗАБЛОКИРОВАН: НЕТ"
+            message = f"{id}\n{username}\n{blocked}\n{balance}\n"
 
             buttons = [
                 [
                     Button.inline("Заблокировать", data=json.dumps({"action": f"users_block_{user_found.id}"})),
+                ],
+                [
+                    Button.inline("Разблокировать", data=json.dumps({"action": f"users_unblock_{user_found.id}"})),
                 ],
                 [
                     Button.inline("Изменить баланс",
@@ -160,6 +164,10 @@ async def user_change_block_callback_handler(event):
         id = action.split("_")[-1]
         await handle_user_block(event, int(id))
 
+    elif "users_unblock_" in action:
+        id = action.split("_")[-1]
+        await handle_user_unblock(event, int(id))
+
 
 async def handle_user_change_balance(event, changed_balance, user_id_changed):
     if isinstance(event.original_update, UpdateBotCallbackQuery):
@@ -188,4 +196,19 @@ async def handle_user_block(event, id):
         Button.inline("Назад", data=json.dumps({"action": "admin_users"})),
     ]]
     message = f"Пользователь {id} заблокирован"
+    await client_bot.send_message(user_id, message=message, buttons=buttons)
+
+
+async def handle_user_unblock(event, id):
+    if isinstance(event.original_update, UpdateBotCallbackQuery):
+        user_id = event.original_update.user_id
+    elif isinstance(event.original_update, UpdateNewMessage):
+        user_id = event.original_update.message.peer_id.user_id
+
+    await UserDao.update(id=id, blocked=False)
+
+    buttons = [[
+        Button.inline("Назад", data=json.dumps({"action": "admin_users"})),
+    ]]
+    message = f"Пользователь {id} разблокирован"
     await client_bot.send_message(user_id, message=message, buttons=buttons)

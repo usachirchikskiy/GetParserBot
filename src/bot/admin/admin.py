@@ -23,12 +23,15 @@ async def handle_admin(event):
         user_id = event.original_update.message.peer_id.user_id
 
     buttons = [
-            [
-                Button.inline("👤 Пользователи", data=json.dumps({"action": "admin_users"})),
-                    Button.inline("💰 Реклама", data=json.dumps({"action": "admin_ads"}))
-            ],
+        [
+            Button.inline("👤 Пользователи", data=json.dumps({"action": "admin_users"})),
+            Button.inline("💰 Реклама", data=json.dumps({"action": "admin_ads"}))
+        ],
         [
             Button.inline("Настройки", data=json.dumps({"action": "admin_settings"}))
+        ],
+        [
+            Button.inline("Назад", data=json.dumps({"action": "back_to_main_menu"}))
         ]
     ]
 
