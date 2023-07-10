@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from urllib.parse import quote
 
 import aiohttp
 from telethon import Button
@@ -73,6 +74,7 @@ class Grailed:
 
     async def parse_item(self, session, id):
         url = f"https://www.grailed.com/api/listings/{id}"
+        print(url)
         response = await self.fetch_query_get(session, url)
         slug = response['data']['title']
         price = str(response['data']['price']) + " " + response['data']['currency']
@@ -85,7 +87,7 @@ class Grailed:
         photo_link = response['data']['photos'][0]['url']
         seller_name = response['data']['seller']['username']
         seller_rating = response['data']['seller']['seller_score']['rating_average']
-        items_quantity_sold = response['data']['seller']['total_bought_and_sold']
+        items_quantity_sold = response['data']['seller']['seller_score']['sold_count']
         items_quantity = response['data']['seller']['listings_for_sale_count']
         seller_registration_date = moscow_time(response['data']['seller']['created_at'], "%Y-%m-%dT%H:%M:%S.%fZ")
         return slug, price, location, description, ad_created_date, link, chat_link, photo_link, \
@@ -93,17 +95,22 @@ class Grailed:
 
     async def check_to_send_message(self, items_quantity, items_quantity_sold, seller_registration_date, rating,
                                     ad_created_date):
+        print(items_quantity,
+              items_quantity_sold,
+              seller_registration_date,
+              rating,
+              ad_created_date)
         if self.items_quantity is not None:
-            if self.items_quantity > int(items_quantity):
+            if self.items_quantity < int(items_quantity):
                 return False
-        if self.seller_rating is not None:
-            if self.seller_rating > float(rating):
+        if self.seller_rating is not None and rating is not None:
+            if self.seller_rating < float(rating):
                 return False
         if self.ad_created_date is not None:
             if self.ad_created_date != ad_created_date:
                 return False
         if self.items_quantity_sold is not None:
-            if self.items_quantity_sold > items_quantity_sold:
+            if self.items_quantity_sold < items_quantity_sold:
                 return False
         if self.seller_registration_date is not None:
             if self.seller_registration_date != seller_registration_date:
@@ -112,6 +119,11 @@ class Grailed:
 
     async def send_message(self, slug, price, location, description, ad_date_created, link, chat_link, photo_link,
                            seller_name, seller_rating, quantity_sold_items, items_quantity, seller_registration_date):
+        if seller_rating is None:
+            seller_rating = 0
+        link = quote(link, safe=':/')
+        chat_link = quote(chat_link, safe=':/')
+
         text = f"🗂 Товар:  {slug}\n" \
                f"💶 Цена:  {price}\n" \
                f"📍 Местоположение товара:  {location}\n" \
@@ -132,13 +144,14 @@ class Grailed:
 
     async def send_message_with_photo(self, message, photo_link):
         try:
-            print(photo_link)
-            button = [
-                [
-                    Button.text("Остановить парсер", resize=True, single_use=True)
-                ]
-            ]
-            await client_bot.send_message(self.chat_id, message=message, buttons=button, file=photo_link,
+            # button = [
+            #     [
+            #         Button.text("Остановить парсер", resize=True, single_use=True)
+            #     ]
+            # ]
+            await client_bot.send_message(self.chat_id, message=message,
+                                          # buttons=button,
+                                          file=photo_link,
                                           link_preview=False,
                                           parse_mode='md')
         except Exception as e:
@@ -183,5 +196,17 @@ async def run_grailed(urls, location, items_quantity, items_quantity_sold, selle
                       ad_created_date, seller_rating, chat_id, price_min, price_max):
     parser = Grailed(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
                      ad_created_date, seller_rating, chat_id, price_min, price_max)
+    # print(urls, "\n",
+    #       location, "\n",
+    #       items_quantity, "\n",
+    #       items_quantity_sold, "\n",
+    #       seller_registration_date, "\n",
+    #       ad_created_date, "\n",
+    #       seller_rating, "\n",
+    #       chat_id, "\n",
+    #       price_min, "\n",
+    #       price_max)
+    await client_bot.send_message(chat_id,
+                                  message="✅ Парсер запущен, поиск может занять некоторое время, пожалуйста ожидайте.\n\nДля остановки парсера введите: **Остановить парсер**")
     await parser.main()
     await client_bot.send_message(chat_id, message="✅ Парсер завершен")

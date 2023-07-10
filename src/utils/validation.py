@@ -39,7 +39,8 @@ class Validation:
 
     @staticmethod
     def validate_price_range(price_range):
-        if price_range == "Не использовать фильтр": return True
+        if type(price_range) is str:
+            if price_range.lower() == "не использовать фильтр": return True
         pattern = r'^\d+-\d+$'  # Регулярное выражение для проверки формата диапазона цены
         if re.match(pattern, price_range):
             return True
@@ -48,7 +49,8 @@ class Validation:
 
     @staticmethod
     def validate_date(date_str):
-        if date_str == "Не использовать фильтр": return True
+        if type(date_str) is str:
+            if date_str.lower() == "не использовать фильтр": return True
         try:
             datetime.strptime(date_str, '%Y-%m-%d')
             return True
@@ -63,10 +65,11 @@ class Validation:
 
     @staticmethod
     def validate_positive_integer(number, rating=None):
-        if number == "Не использовать фильтр": return True
+        if type(number) is str:
+            if number.lower() == "не использовать фильтр": return True
         try:
             number = int(number)
-            if number > 0:
+            if number >= 0:
                 if rating:
                     if number < 6:
                         return True

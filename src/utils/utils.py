@@ -70,7 +70,7 @@ def convert_utc_to_moscow(timestamp):
 
 
 def flag(country):
-    if country == "AU":
+    if country == "AU" or country == "AU/NZ":
         return "🇦🇺"
     elif country == "DE":
         return "🇩🇪"

@@ -1,11 +1,8 @@
 import asyncio
-import json
 import logging
-import urllib
+from urllib.parse import quote
 
 import aiohttp
-import requests
-from telethon import Button
 from telethon.errors import UserIsBlockedError
 
 from src.main import client_bot
@@ -112,7 +109,7 @@ class Poshmark:
 
     async def check_to_send_message(self, quantity_of_ads, ad_created_date, seller_registration_date):
         if self.quantity_of_ads is not None:
-            if self.quantity_of_ads > int(quantity_of_ads):
+            if self.quantity_of_ads < int(quantity_of_ads):
                 return False
         if self.ad_created_date is not None:
             if self.ad_created_date != ad_created_date:
@@ -124,6 +121,8 @@ class Poshmark:
 
     async def send_message(self, slug, price, location, description, ad_date_created, link, chat_link, photo_link,
                            seller_name, items_quantity, seller_registration_date, last_logged):
+        link = quote(link, safe=':/')
+        chat_link = quote(chat_link, safe=':/')
         text = f"🗂 Товар:  {slug}\n" \
                f"💶 Цена:  {price}\n" \
                f"📍 Местоположение товара:  {location}\n" \
@@ -143,12 +142,14 @@ class Poshmark:
 
     async def send_message_with_photo(self, message, photo_link):
         try:
-            button = [
-                [
-                    Button.text("Остановить парсер", resize=True, single_use=True)
-                ]
-            ]
-            await client_bot.send_message(self.chat_id, message=message, buttons=button, file=photo_link,
+            # button = [
+            #     [
+            #         Button.text("Остановить парсер", resize=True, single_use=True)
+            #     ]
+            # ]
+            await client_bot.send_message(self.chat_id, message=message,
+                                          # buttons=button,
+                                          file=photo_link,
                                           link_preview=False,
                                           parse_mode='md')
         except Exception as e:
@@ -175,5 +176,7 @@ async def run_poshmark(urls, country, quantity_of_ads, seller_registration_date,
                        ad_created_date, chat_id, price_min, price_max):
     parser = Poshmark(urls, country, quantity_of_ads, seller_registration_date,
                       ad_created_date, chat_id, price_min, price_max)
+    await client_bot.send_message(chat_id,
+                                  message="✅ Парсер запущен, поиск может занять некоторое время, пожалуйста ожидайте.\n\nДля остановки парсера введите: **Остановить парсер**")
     await parser.main()
     await client_bot.send_message(chat_id, message="✅ Парсер завершен")

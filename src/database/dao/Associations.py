@@ -1,9 +1,10 @@
 import copy
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, insert, update, exists
 
 from src.database.dao.BaseDao import BaseDao
+from src.database.dao.SubscriptionDao import SubscriptionDao
 from src.database.database import async_session_maker
 from src.database.model.User import UserSubscriptionAssociation, UserSubscriptionFilterAssociation, \
     UserPaymentSystemAssociation
@@ -11,6 +12,13 @@ from src.database.model.User import UserSubscriptionAssociation, UserSubscriptio
 
 class UserSubscriptionDao(BaseDao):
     model = UserSubscriptionAssociation
+
+    @classmethod
+    async def exists(cls, user_id):
+        async with async_session_maker() as session:
+            query = select(exists().where(cls.model.user_id == user_id))
+            record_exists = await session.execute(query)
+            return record_exists.scalar()
 
     @classmethod
     async def is_active(cls, **data):
@@ -33,6 +41,30 @@ class UserSubscriptionDao(BaseDao):
             await cls.add(**data)
         else:
             await cls.update(exist.id, **data)
+
+    @classmethod
+    async def add_or_update_all(cls, days, user_id):
+        subscriptions = await SubscriptionDao.find_all()
+
+        to_add = []
+        to_update = []
+
+        for subscription in subscriptions:
+            expired_at = datetime.now() + timedelta(days=days)
+            exist = await cls.find_one_or_none(user_id=user_id, subscription_id=subscription.id)
+            if not exist:
+                to_add.append({"expired_at": expired_at, "user_id": user_id, "subscription_id": subscription.id})
+            else:
+                to_update.append(
+                    {"id": exist.id, "expired_at": expired_at, "user_id": user_id, "subscription_id": subscription.id})
+
+        async with async_session_maker() as session:
+            if to_add:
+                await session.execute(insert(cls.model).values(to_add))
+            if to_update:
+                for record in to_update:
+                    await session.execute(update(cls.model).where(cls.model.id == record["id"]).values(record))
+            await session.commit()
 
 
 class UserFilterSubscriptionDao(BaseDao):

@@ -23,7 +23,7 @@ class SubscriptionDao(BaseDao):
              'price_month': 4500},
             {'name': 'GRAILED.CA', 'price_one_day': 250, 'price_three_day': 500, 'price_week': 1000,
              'price_month': 4500},
-            {'name': 'GRAILED.AUNZ', 'price_one_day': 250, 'price_three_day': 500, 'price_week': 1000,
+            {'name': 'GRAILED.AU/NZ', 'price_one_day': 250, 'price_three_day': 500, 'price_week': 1000,
              'price_month': 4500},
             {'name': 'GRAILED.ASIA', 'price_one_day': 250, 'price_three_day': 500, 'price_week': 1000,
              'price_month': 4500},

@@ -1,8 +1,8 @@
 import asyncio
 import logging
+from urllib.parse import quote
 
 import aiohttp
-from telethon import Button
 from telethon.errors import UserIsBlockedError
 
 from src.main import client_bot
@@ -19,7 +19,7 @@ class WallaPop:
         self.items_quantity_sold = int(items_quantity_sold) if items_quantity_sold != "" else None
         self.seller_registration_date = seller_registration_date if seller_registration_date != "" else None
         self.ad_created_date = ad_created_date if ad_created_date != "" else None
-        self.seller_rating = seller_rating if seller_rating != "" else None
+        self.seller_rating = int(seller_rating) if seller_rating != "" else None
         self.urls = urls
         self.chat_id = chat_id
 
@@ -86,19 +86,19 @@ class WallaPop:
     async def check_to_send_message(self, items_quantity, items_quantity_sold, seller_registration_date, rating,
                                     ad_created_date):
         if self.items_quantity is not None:
-            if self.items_quantity > int(items_quantity):
+            if self.items_quantity < int(items_quantity):
                 return False
-        if self.seller_rating is not None:
-            if self.seller_rating > float(rating):
+        if self.seller_rating is not None and rating is not None:
+            if self.seller_rating < float(rating):
                 return False
         if self.ad_created_date is not None:
             if self.ad_created_date != ad_created_date:
                 return False
         if self.items_quantity is not None:
-            if self.items_quantity > items_quantity:
+            if self.items_quantity < items_quantity:
                 return False
         if self.items_quantity_sold is not None:
-            if self.items_quantity_sold > items_quantity_sold:
+            if self.items_quantity_sold < items_quantity_sold:
                 return False
         if self.seller_registration_date is not None:
             if self.seller_registration_date != seller_registration_date:
@@ -107,6 +107,11 @@ class WallaPop:
 
     async def send_message(self, slug, price, location, description, ad_date_created, link, chat_link, photo_link,
                            seller_name, seller_rating, quantity_sold_items, items_quantity, seller_registration_date):
+        if seller_rating is None:
+            seller_rating = 0
+        link = quote(link, safe=':/')
+        chat_link = quote(chat_link, safe=':/')
+
         text = f"🗂 Товар:  {slug}\n" \
                f"💶 Цена:  {price}\n" \
                f"📍 Местоположение товара:  {location}\n" \
@@ -139,12 +144,14 @@ class WallaPop:
 
     async def send_message_with_photo(self, message, photo_link):
         try:
-            button = [
-                [
-                    Button.text("Остановить парсер", resize=True, single_use=True)
-                ]
-            ]
-            await client_bot.send_message(self.chat_id, message=message, buttons=button, file=photo_link,
+            # button = [
+            #     [
+            #         Button.text("Остановить парсер", resize=True, single_use=True)
+            #     ]
+            # ]
+            await client_bot.send_message(self.chat_id, message=message,
+                                          # buttons=button,
+                                          file=photo_link,
                                           link_preview=False,
                                           parse_mode='md')
         except Exception as e:
@@ -171,5 +178,7 @@ async def run_wallapop(urls, location, items_quantity, items_quantity_sold, sell
                        ad_created_date, seller_rating, chat_id, price_min, price_max):
     parser = WallaPop(urls, location, items_quantity, items_quantity_sold, seller_registration_date,
                       ad_created_date, seller_rating, chat_id, price_min, price_max)
+    await client_bot.send_message(chat_id,
+                                  message="✅ Парсер запущен, поиск может занять некоторое время, пожалуйста ожидайте.\n\nДля остановки парсера введите: **Остановить парсер**")
     await parser.main()
     await client_bot.send_message(chat_id, message="✅ Парсер завершен")

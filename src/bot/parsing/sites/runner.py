@@ -43,16 +43,16 @@ async def handle_depop(subscription, splitted, user_id):
     urls_list = dict_arguments["Ссылки"].split(",")
     urls = [url for url in urls_list if url != '']
     prices = dict_arguments['Цена'].split("-") if dict_arguments[
-                                                      'Цена'] != "Не использовать фильтр" else ["", ""]
+                                                      'Цена'].lower() != "не использовать фильтр" else ["", ""]
 
     quantity_of_ads = dict_arguments['Кол-во проданных товаров продавца'] if dict_arguments[
-                                                                                 'Кол-во проданных товаров продавца'] != "Не использовать фильтр" else ""
+                                                                                 'Кол-во проданных товаров продавца'].lower() != "не использовать фильтр" else ""
 
     seller_rating = dict_arguments['Рейтинг продавца'] if dict_arguments[
-                                                              'Рейтинг продавца'] != "Не использовать фильтр" else ""
+                                                              'Рейтинг продавца'].lower() != "не использовать фильтр" else ""
 
     ad_created_date = dict_arguments['Дата создания объявления'] if dict_arguments[
-                                                                        'Дата создания объявления'] != "Не использовать фильтр" else ""
+                                                                        'Дата создания объявления'].lower() != "не использовать фильтр" else ""
 
     country = subscription.split(".")[1].lower()
     if country == "uk":
@@ -72,22 +72,22 @@ async def handle_grailed(subscription, splitted, user_id):
     urls_list = dict_arguments["Ссылки"].split(",")
     urls = [url for url in urls_list if url != '']
     prices = dict_arguments['Цена'].split("-") if dict_arguments[
-                                                      'Цена'] != "Не использовать фильтр" else ["", ""]
+                                                      'Цена'].lower() != "не использовать фильтр" else ["", ""]
 
     items_quantity = dict_arguments['Кол-во обьявлений продавца'] if dict_arguments[
-                                                                         'Кол-во обьявлений продавца'] != "Не использовать фильтр" else ""
+                                                                         'Кол-во обьявлений продавца'].lower() != "не использовать фильтр" else ""
 
     items_quantity_sold = dict_arguments['Кол-во проданных товаров продавца'] if dict_arguments[
-                                                                                     'Кол-во проданных товаров продавца'] != "Не использовать фильтр" else ""
+                                                                                     'Кол-во проданных товаров продавца'].lower() != "не использовать фильтр" else ""
 
     seller_registration_date = dict_arguments['Дата регистрации продавца'] if dict_arguments[
-                                                                                  'Дата регистрации продавца'] != "Не использовать фильтр" else ""
+                                                                                  'Дата регистрации продавца'].lower() != "не использовать фильтр" else ""
 
     ad_created_date = dict_arguments['Дата создания объявления'] if dict_arguments[
-                                                                        'Дата создания объявления'] != "Не использовать фильтр" else ""
+                                                                        'Дата создания объявления'].lower() != "не использовать фильтр" else ""
 
     seller_rating = dict_arguments['Рейтинг продавца'] if dict_arguments[
-                                                              'Рейтинг продавца'] != "Не использовать фильтр" else ""
+                                                              'Рейтинг продавца'].lower() != "не использовать фильтр" else ""
 
     country = subscription.split(".")[1].lower()
     if country == "uk":
@@ -120,16 +120,16 @@ async def handle_poshmark(subscription, splitted, user_id):
     urls_list = dict_arguments["Ссылки"].split(",")
     urls = [url for url in urls_list if url != '']
     prices = dict_arguments['Цена'].split("-") if dict_arguments[
-                                                      'Цена'] != "Не использовать фильтр" else ["", ""]
+                                                      'Цена'].lower() != "не использовать фильтр" else ["", ""]
 
     items_quantity = dict_arguments['Кол-во обьявлений продавца'] if dict_arguments[
-                                                                         'Кол-во обьявлений продавца'] != "Не использовать фильтр" else ""
+                                                                         'Кол-во обьявлений продавца'].lower() != "не использовать фильтр" else ""
 
     seller_registration_date = dict_arguments['Дата регистрации продавца'] if dict_arguments[
-                                                                                  'Дата регистрации продавца'] != "Не использовать фильтр" else ""
+                                                                                  'Дата регистрации продавца'].lower() != "не использовать фильтр" else ""
 
     ad_created_date = dict_arguments['Дата создания объявления'] if dict_arguments[
-                                                                        'Дата создания объявления'] != "Не использовать фильтр" else ""
+                                                                        'Дата создания объявления'].lower() != "не использовать фильтр" else ""
 
     country = subscription.split(".")[1].lower()
 
@@ -150,22 +150,22 @@ async def handle_schpock(subscription, splitted, user_id):
     urls_list = dict_arguments["Ссылки"].split(",")
     urls = [url for url in urls_list if url != '']
     prices = dict_arguments['Цена'].split("-") if dict_arguments[
-                                                      'Цена'] != "Не использовать фильтр" else ["", ""]
+                                                      'Цена'].lower() != "не использовать фильтр" else ["", ""]
 
     items_quantity = dict_arguments['Кол-во обьявлений продавца'] if dict_arguments[
-                                                                         'Кол-во обьявлений продавца'] != "Не использовать фильтр" else ""
+                                                                         'Кол-во обьявлений продавца'].lower() != "не использовать фильтр" else ""
 
     items_quantity_sold = dict_arguments['Кол-во проданных товаров продавца'] if dict_arguments[
-                                                                                     'Кол-во проданных товаров продавца'] != "Не использовать фильтр" else ""
+                                                                                     'Кол-во проданных товаров продавца'].lower() != "не использовать фильтр" else ""
 
     seller_registration_date = dict_arguments['Дата регистрации продавца'] if dict_arguments[
-                                                                                  'Дата регистрации продавца'] != "Не использовать фильтр" else ""
+                                                                                  'Дата регистрации продавца'].lower() != "не использовать фильтр" else ""
 
     ad_created_date = dict_arguments['Дата создания объявления'] if dict_arguments[
-                                                                        'Дата создания объявления'] != "Не использовать фильтр" else ""
+                                                                        'Дата создания объявления'].lower() != "не использовать фильтр" else ""
 
     seller_rating = dict_arguments['Рейтинг продавца'] if dict_arguments[
-                                                              'Рейтинг продавца'] != "Не использовать фильтр" else ""
+                                                              'Рейтинг продавца'].lower() != "не использовать фильтр" else ""
 
     country = subscription.split(".")[1].lower()
 
@@ -186,19 +186,19 @@ async def handle_vinted(subscription, splitted, user_id):
     urls_list = dict_arguments["Ссылки"].split(",")
     urls = [url for url in urls_list if url != '']
     prices = dict_arguments['Цена'].split("-") if dict_arguments[
-                                                      'Цена'] != "Не использовать фильтр" else ["", ""]
+                                                      'Цена'].lower() != "не использовать фильтр" else ["", ""]
 
     items_quantity = dict_arguments['Кол-во обьявлений продавца'] if dict_arguments[
-                                                                         'Кол-во обьявлений продавца'] != "Не использовать фильтр" else ""
+                                                                         'Кол-во обьявлений продавца'].lower() != "не использовать фильтр" else ""
 
     items_quantity_sold = dict_arguments['Кол-во проданных товаров продавца'] if dict_arguments[
-                                                                                     'Кол-во проданных товаров продавца'] != "Не использовать фильтр" else ""
+                                                                                     'Кол-во проданных товаров продавца'].lower() != "не использовать фильтр" else ""
 
     ad_created_date = dict_arguments['Дата создания объявления'] if dict_arguments[
-                                                                        'Дата создания объявления'] != "Не использовать фильтр" else ""
+                                                                        'Дата создания объявления'].lower() != "не использовать фильтр" else ""
 
     seller_rating = dict_arguments['Рейтинг продавца'] if dict_arguments[
-                                                              'Рейтинг продавца'] != "Не использовать фильтр" else ""
+                                                              'Рейтинг продавца'].lower() != "не использовать фильтр" else ""
 
     country = subscription.split(".")[1].lower()
 
@@ -219,22 +219,22 @@ async def handle_wallapop(subscription, splitted, user_id):
     urls_list = dict_arguments["Ссылки"].split(",")
     urls = [url for url in urls_list if url != '']
     prices = dict_arguments['Цена'].split("-") if dict_arguments[
-                                                      'Цена'] != "Не использовать фильтр" else ["", ""]
+                                                      'Цена'].lower() != "не использовать фильтр" else ["", ""]
 
     items_quantity = dict_arguments['Кол-во обьявлений продавца'] if dict_arguments[
-                                                                         'Кол-во обьявлений продавца'] != "Не использовать фильтр" else ""
+                                                                         'Кол-во обьявлений продавца'].lower() != "не использовать фильтр" else ""
 
     items_quantity_sold = dict_arguments['Кол-во проданных товаров продавца'] if dict_arguments[
-                                                                                     'Кол-во проданных товаров продавца'] != "Не использовать фильтр" else ""
+                                                                                     'Кол-во проданных товаров продавца'].lower() != "не использовать фильтр" else ""
 
     seller_registration_date = dict_arguments['Дата регистрации продавца'] if dict_arguments[
-                                                                                  'Дата регистрации продавца'] != "Не использовать фильтр" else ""
+                                                                                  'Дата регистрации продавца'].lower() != "не использовать фильтр" else ""
 
     ad_created_date = dict_arguments['Дата создания объявления'] if dict_arguments[
-                                                                        'Дата создания объявления'] != "Не использовать фильтр" else ""
+                                                                        'Дата создания объявления'].lower() != "не использовать фильтр" else ""
 
     seller_rating = dict_arguments['Рейтинг продавца'] if dict_arguments[
-                                                              'Рейтинг продавца'] != "Не использовать фильтр" else ""
+                                                              'Рейтинг продавца'].lower() != "не использовать фильтр" else ""
 
     country = subscription.split(".")[1].lower()
 

@@ -102,7 +102,7 @@ async def payment_generated(event, amount_to_pay):
     crypto_type = (await UserPaymentSystemDao.find_one_or_none(user_id=user_id)).type
     payment_system_id = (await PaymentSystemDao.find_one_or_none(title=None)).id
     await UserPaymentSystemDao.add_or_update(user_id=user_id, payment_system_id=payment_system_id, type="")
-    result = 1  # TODO() await coin_market.get_in_crypto(user.type, amount_to_pay)
+    result = 1  # Todo await coin_market.get_in_crypto(user.type, amount_to_pay)
     invoice = await crypto_pay.create_invoice(crypto_type, result)
     buttons = [
         [

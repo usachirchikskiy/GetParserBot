@@ -1,6 +1,7 @@
 import logging
 
-from sqlalchemy import select, insert, delete, update
+from sqlalchemy import select, insert, delete, update, exists
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.database import async_session_maker
 

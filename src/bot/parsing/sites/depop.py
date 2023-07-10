@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from urllib.parse import quote
 
 import aiohttp
 from telethon import Button
@@ -121,10 +122,10 @@ class DepopParser:
 
     async def check_to_send_message(self, quantity_of_ads, rating, ad_created_date):
         if self.quantity_of_ads is not None:
-            if self.quantity_of_ads > int(quantity_of_ads):
+            if self.quantity_of_ads < int(quantity_of_ads):
                 return False
-        if self.seller_rating is not None:
-            if self.seller_rating > float(rating):
+        if self.seller_rating is not None and rating is not None:
+            if self.seller_rating < float(rating):
                 return False
         if self.ad_created_date is not None:
             if self.ad_created_date != ad_created_date:
@@ -134,6 +135,11 @@ class DepopParser:
     async def send_message(self, slug, price, location, description, ad_date_created, link, chat_link, photo_link,
                            seller_name, seller_last_seen, seller_rating, quantity_sold_items, photo_link_480,
                            photo_link_320):
+        if seller_rating is None:
+            seller_rating = 0
+        link = quote(link, safe=':/')
+        chat_link = quote(chat_link, safe=':/')
+
         text = f"🗂 Товар:  {slug}\n" \
                f"💶 Цена:  {price}\n" \
                f"📍 Местоположение товара:  {location}\n" \
@@ -152,12 +158,14 @@ class DepopParser:
 
     async def send_message_with_photo(self, message, photo_link):
         try:
-            button = [
-                [
-                    Button.text("Остановить парсер", resize=True, single_use=True)
-                ]
-            ]
-            await client_bot.send_message(self.chat_id, message=message, buttons=button, file=photo_link,
+            # button = [
+            #     [
+            #         Button.text("Остановить парсер", resize=True, single_use=True)
+            #     ]
+            # ]
+            await client_bot.send_message(self.chat_id, message=message,
+                                          # buttons=button,
+                                          file=photo_link,
                                           link_preview=False,
                                           parse_mode='md')
         except Exception as e:
@@ -188,5 +196,7 @@ async def run_depop(urls, price_min, price_max,
                          quantity_of_ads, seller_rating,
                          ad_created_date, country,
                          chat_id)
+    await client_bot.send_message(chat_id,
+                                  message="✅ Парсер запущен, поиск может занять некоторое время, пожалуйста ожидайте.\n\nДля остановки парсера введите: **Остановить парсер**")
     await parser.main()
     await client_bot.send_message(chat_id, message="✅ Парсер завершен")

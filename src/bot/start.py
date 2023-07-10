@@ -135,7 +135,22 @@ async def start(event):
     else:
         blocked = user.blocked
         if not blocked:
+            await reset(user_id)
             await menu(event, False)
+
+
+async def reset(user_id):
+    await UserDao.update(id=user_id, bot_message=None)
+    user_payment_system = await UserPaymentSystemDao.find_one_or_none(user_id=user_id)
+    userFilterSubscription = await UserFilterSubscriptionDao.get_last_added(user_id)
+    if userFilterSubscription:
+        filter_id = userFilterSubscription.filter_id
+        filter_entity = await FilterDao.find_one_or_none(id=filter_id)
+        await FilterDao.update(id=filter_entity.id, value=None, question_number=0)
+
+    if user_payment_system is not None:
+        payment_system_id = user_payment_system.payment_system_id
+        await PaymentSystemDao.update(id=payment_system_id, title=None)
 
 
 async def handle_promocode_message(event):

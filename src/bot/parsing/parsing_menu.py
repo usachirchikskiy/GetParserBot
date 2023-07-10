@@ -1,14 +1,15 @@
+import asyncio
 import json
-import math
 
 from telethon import Button, events
+from telethon.tl.types import UpdateBotCallbackQuery, UpdateNewMessage
 
 from src.bot.parsing.parsing_site import handle_site
 from src.database.dao.Associations import UserSubscriptionDao
 from src.database.dao.SubscriptionDao import SubscriptionDao
 from src.database.dao.UserDao import UserDao
 from src.main import client_bot
-from src.utils.constants import depop, media, sites, total_pages
+from src.utils.constants import media, sites, total_pages
 from src.utils.utils import flag, description_of_area
 
 
@@ -143,13 +144,49 @@ async def subscription_callback_handler(event):
     data = json.loads(event.data.decode("utf-8"))
     action = data['action']
     subscription_title = action.split(" ")[1]
-    buttons = await check_user_subscription(event, subscription_title)
-    if buttons:
-        message = description_of_area(subscription_title)
-        await client_bot.send_file(event.chat_id, caption=action + "\n" + message, file=media,
-                                   buttons=buttons)
-    else:
+
+    has_subscription = await UserSubscriptionDao.exists(user_id=event.chat_id)
+    if has_subscription:
         await handle_site(subscription_title, event)
+    else:
+        await get_buttons_for_payment(event, subscription_title, action)
+
+    # Todo apply separate subscriptions
+    # buttons = await check_user_subscription(event, subscription_title)
+    # if buttons:
+    #     message = description_of_area(subscription_title)
+    #     await client_bot.send_file(event.chat_id, caption=action + "\n" + message, file=media,
+    #                                buttons=buttons)
+    # else:
+    # await handle_site(subscription_title, event)
+
+
+async def get_buttons_for_payment(event, subscription_title, action):
+    subscription = await SubscriptionDao.find_one_or_none(name=subscription_title)
+    buttons = [
+        [
+            Button.inline(f"Купить на 30 дней [{subscription.price_month} RUB]",
+                          data=json.dumps({f"{subscription_title}": [subscription.price_month, 30]}))
+        ],
+        [
+            Button.inline(f"Купить на 7 дней [{subscription.price_week} RUB]",
+                          data=json.dumps({f"{subscription_title}": [subscription.price_week, 7]}))
+        ],
+        [
+            Button.inline(f"Купить на 3 дня [{subscription.price_three_day} RUB]",
+                          data=json.dumps({f"{subscription_title}": [subscription.price_three_day, 3]}))
+        ],
+        [
+            Button.inline(f"Купить на 1 день [{subscription.price_one_day} RUB]",
+                          data=json.dumps({f"{subscription_title}": [subscription.price_one_day, 1]}))
+        ],
+        [
+            Button.inline("Назад", data=json.dumps({"action": "begin_parsing"})),
+        ]
+    ]
+    message = description_of_area(subscription_title)
+    await client_bot.send_file(event.chat_id, caption=action + "\n" + message, file=media,
+                               buttons=buttons)
 
 
 @client_bot.on(events.CallbackQuery(func=subscription_buy_callback_filter))
@@ -173,8 +210,12 @@ async def handle_subscription_purchase(key, value, user_id):
         return False
     user_balance_updated = user_balance - value[0]
     await UserDao.update(user_id, balance=user_balance_updated)
-    subscription_id = (await SubscriptionDao.find_one_or_none(name=key)).id
-    await UserSubscriptionDao.add_or_update(value[1], user_id=user_id, subscription_id=subscription_id)
+    # task = asyncio.create_task(UserSubscriptionDao.add_or_update_all(value[1], user_id=user_id))
+    # task.add_done_callback(handle_exception)
+    await UserSubscriptionDao.add_or_update_all(value[1], user_id=user_id)
+    # Todo apply separate subscription
+    # subscription_id = (await SubscriptionDao.find_one_or_none(name=key)).id
+    # await UserSubscriptionDao.add_or_update(value[1], user_id=user_id, subscription_id=subscription_id)
     return True
 
 
